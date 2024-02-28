@@ -1,0 +1,115 @@
+package serveur;
+
+
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
+import java.net.ServerSocket;
+import java.net.Socket;
+
+public class serveur {
+
+    public static void main(String[] args) {
+        ServerSocket serverSocket = null;
+
+        try {
+            // Création du serveur écoutant sur le port 12345
+            serverSocket = new ServerSocket(12345);
+            System.out.println("Le serveur est en attente de connexions...");
+
+            while (true) {
+                // Attente d'une connexion d'un client
+                Socket clientSocket = serverSocket.accept();
+                System.out.println("Nouvelle connexion client.");
+
+                // Création d'un thread pour gérer la communication avec le client
+                Thread clientThread = new Thread(new ClientHandler(clientSocket));
+                clientThread.start();
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                if (serverSocket != null) {
+                    serverSocket.close();
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    static class ClientHandler implements Runnable {
+        private final Socket clientSocket;
+        private final BufferedReader reader;
+        private final PrintWriter writer;
+        private String username;
+
+        public ClientHandler(Socket socket) throws IOException {
+            this.clientSocket = socket;
+            this.reader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+            this.writer = new PrintWriter(clientSocket.getOutputStream(), true);
+        }
+
+        @Override
+        public void run() {
+            try {
+                // Demander à l'utilisateur de s'authentifier avec un nom d'utilisateur
+                writer.println("Veuillez entrer votre nom d'utilisateur : ");
+                this.username = reader.readLine();
+                System.out.println("Authentification réussie pour " + username);
+
+                while (true) {
+                    String message = reader.readLine();
+                    if (message == null) {
+                        break;
+                    }
+
+                    if (message.equals("exit")) {
+                        break;
+                    }
+
+                    System.out.println("Message reçu de " + username + " : " + message);
+
+                    if (isInteger(message)) {
+                        // Si le message est un entier, effectuer la somme
+                        int number = Integer.parseInt(message);
+                        int sum = calculateSum(number);
+                        writer.println("Résultat de la somme : " + sum);
+                        System.out.println("Résultat de la somme envoyé à " + username);
+                    } else {
+                        // Sinon, renvoyer le message au client en précisant le propriétaire
+                        writer.println("Message de " + username + " : " + message);
+                    }
+                }
+
+            } catch (IOException e) {
+                e.printStackTrace();
+            } finally {
+                try {
+                    clientSocket.close();
+                    System.out.println(username + " déconnecté.");
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
+        private boolean isInteger(String str) {
+            try {
+                Integer.parseInt(str);
+                return true;
+            } catch (NumberFormatException e) {
+                return false;
+            }
+        }
+
+        private int calculateSum(int number) {
+            // Exemple de calcul : additionner le nombre avec 10
+            return number + 10;
+        }
+    }
+}

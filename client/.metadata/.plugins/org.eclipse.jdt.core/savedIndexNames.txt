@@ -1,0 +1,4 @@
+INDEX VERSION 1.134+C:\Users\LENOVO\Desktop\socket\revision\mini_projet_socket\client\.metadata\.plugins\org.eclipse.jdt.core
+2875779875.index
+1865797976.index
+262142283.index

@@ -1,0 +1,115 @@
+package serveur;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
+import java.net.ServerSocket;
+import java.net.Socket;
+
+public class serveur {
+
+    public static void main(String[] args) {
+        ServerSocket serverSocket = null;
+
+        try {
+            
+            serverSocket = new ServerSocket(12345);
+            System.out.println("Le serveur est en attente de connexions...");
+
+            
+            Socket clientSocket1 = serverSocket.accept();
+            System.out.println("Nouvelle connexion client 1.");
+
+         
+            Thread clientThread1 = new Thread(new ClientHandler(clientSocket1, "Client 1"));
+            clientThread1.start();
+
+            
+            Socket clientSocket2 = serverSocket.accept();
+            System.out.println("Nouvelle connexion client 2.");
+
+            
+            Thread clientThread2 = new Thread(new ClientHandler(clientSocket2, "Client 2"));
+            clientThread2.start();
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    static class ClientHandler implements Runnable {
+        private final Socket clientSocket;
+        private final BufferedReader reader;
+        private final PrintWriter writer;
+        private final String username;
+        private int sum = 0;
+        private boolean hasSentInteger = false;
+
+        public ClientHandler(Socket socket, String username) throws IOException {
+            this.clientSocket = socket;
+            this.reader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+            this.writer = new PrintWriter(clientSocket.getOutputStream(), true);
+            this.username = username;
+        }
+
+        @Override
+        public void run() {
+            try {
+                
+                writer.println("Veuillez entrer votre nom d'utilisateur : ");
+                String clientUsername = reader.readLine();
+                System.out.println("Authentification réussie pour " + clientUsername);
+
+                while (true) {
+                    String message = reader.readLine();
+                    if (message == null) {
+                        break;
+                    }
+
+                    if (message.equals("exit")) {
+                        break;
+                    }
+
+                    System.out.println("Message reçu de " + clientUsername + " : " + message);
+
+                    if (isInteger(message)) {
+                        int number = Integer.parseInt(message);
+                        sum += number;
+                        hasSentInteger = true;
+
+                        if (hasSentInteger) {
+                            
+                            writer.println("Résultat de la somme : " + sum);
+                            System.out.println("Résultat de la somme envoyé à " + clientUsername);
+                            hasSentInteger = false;
+                            sum = 0;  
+                        }
+                    } else {
+                      
+                        writer.println("Message de " + clientUsername + " : " + message);
+                    }
+                }
+
+            } catch (IOException e) {
+                e.printStackTrace();
+            } finally {
+                try {
+                    clientSocket.close();
+                    System.out.println(username + " déconnecté.");
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
+        private boolean isInteger(String str) {
+            try {
+                Integer.parseInt(str);
+                return true;
+            } catch (NumberFormatException e) {
+                return false;
+            }
+        }
+    }
+}
